@@ -1,5 +1,8 @@
 *.py[cod]
 
+# Output of scripts
+data
+
 # virtualenv
 venv
 
