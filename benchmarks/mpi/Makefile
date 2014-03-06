@@ -11,9 +11,9 @@
 # - Sarah Mount, November 2011
 #
 
-CC=mpicc
+.PHONY: clean version-short version
 
-RM=rm
+CC=mpicc
 
 CFLAGS=-c -Wall -O3
 
@@ -33,6 +33,12 @@ all: $(OBJECTS) $(EXECS)
 
 .o.:
 	$(CC) $^ $(LDFLAGS) -o $@
+
+version-short:
+	-@ mpicc --version | awk 'NR==1' | awk '{ print $$4 }'
+
+version:
+	-@ mpicc --version | awk 'NR==1'
 
 clean:
 	-@ $(RM) *.o
