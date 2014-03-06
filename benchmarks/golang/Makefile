@@ -1,4 +1,4 @@
-.PHONY clean version-short version
+.PHONY: clean version-short version
 
 all: tokenring.go
 	go build -o tokenring
