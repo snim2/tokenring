@@ -7,7 +7,7 @@ version-short:
 	-@ erl -version 2>&1 >/dev/null | awk '{ print $$6 }'
 
 version:
-	-@ erl -version
+	-@ erl -version 2>&1 >/dev/null
 
 clean:
 	-@ rm *.beam *.dump
