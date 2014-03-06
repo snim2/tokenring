@@ -1,0 +1,14 @@
+
+Alternate languages and platforms:
+
+- [ ] HotPy
+- [ ] Stackless
+- [ ] Jython
+- [x] golang
+- [ ] JCSP
+- [x] Scala
+- [ ] Akka
+- [ ] python-csp
+- [ ] python-csp-asyc
+- [ ] OCCAM-pi
+
