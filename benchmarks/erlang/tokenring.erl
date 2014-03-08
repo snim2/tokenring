@@ -1,77 +1,78 @@
-%
-% Code by Vasileios Trigonakis
-% From: http://trigonakis.com/blog/2011/05/26/introduction-to-erlang-message-passing/
-%
+%%
+%% Erlang benchmark
+%%
+%% Author: C.G. Ritson
+%% License: GPL v2
+%% Date: 17/10/2008
+%% Origin: http://github.com/concurrency/kroc
+%%
 
--module(tokenring).
--author("V. Trigonakis").
--export([create/1, node/2, connect/1]).
- 
--define(MAXVAL, 100000).
- 
-%creates the ring's nodes, connects them in a ring, sends the token in the ring, and
-%collects the exit messages from the nodes
-create(NumNodes) when is_integer(NumNodes), NumNodes > 1 ->
-    Nodes = [spawn(?MODULE, node, [ID, self()]) || ID <- lists:seq(1, NumNodes)],
-    ring:connect(Nodes),
-    hd(Nodes) ! {token, 0},
-    getexits(Nodes).
- 
-%collects the exit messages from the nodes
-getexits([]) ->
-    io:format("[Coord] Done.~n"),
-    ok;
-getexits(Nodes) ->
-    receive
-	{Node, exit} ->
-	    case lists:member(Node, Nodes) of
-		true ->
-		    getexits(lists:delete(Node, Nodes));
-		_ ->
-		    getexits(Nodes)
-	    end
-    end.
- 
-%little trick in order to connect the last with the first node
-%handle the [nd0, nd1, ..., ndN] list as [nd0, nd1, ..., ndN, nd0]
-connect(N = [H | _]) ->
-    connect_(N ++ [H]).
- 
-%connects the nodes to a ring
-connect_([]) ->
-    connected;
-connect_([_]) ->
-    connected;
-connect_([N1, N2 | Nodes]) ->
-    N1 ! {self(), connect, N2},
-    connect_([N2 | Nodes]).
- 
-%the node function. Initially waits for the next node's pid
-node(ID, CrdId) ->
-    receive
-	{CrdId, connect, NxtNdId} ->
-	    io:format("[~p:~p] got my next ~p~n", [ID, self(), NxtNdId]),
-	    node(ID, CrdId, NxtNdId)
-    end.
- 
-%the main functionality of a node; receive the token, increase its value and send
-%it to the next node on the ring
-node(ID, CrdId, NxtNdId) ->
-    receive
-	{token, Val} ->
-	    if
-		Val < ?MAXVAL ->
-		    NxtNdId ! {token, Val + 1},
-		    node(ID, CrdId, NxtNdId);
-		true ->
-		    io:format("[~p:~p] token value ~p~n", [ID, self(), Val]),
-		    case erlang:is_process_alive(NxtNdId) of
-			true ->
-			    NxtNdId ! {token, Val + 1};
-			_ ->
-			    ok
-		    end,
-		    CrdId ! {self(), exit},
-		    done
-	    end
-    end.
+-module(mtring).
+-export([main/1, ring_element/2]).
+
+-define(ELEMENTS, 256).
+
+next_token(0) -> 0;
+next_token(Token) -> Token + 1.
+
+ring_element(0, _) ->
+   done;
+ring_element(_, Next) ->
+   receive
+      Token ->
+         Next ! next_token(Token),
+         ring_element(Token, Next)
+   end.
+
+pass_tokens(0, _) -> done;
+pass_tokens(Tokens, Next) ->
+  receive
+     Token ->
+        Next ! (Token + 1),
+        pass_tokens(Tokens - 1, Next)
+  end.
+
+recv_tokens(0, Sum) -> Sum;
+recv_tokens(Tokens, Sum) ->
+   receive
+      Token -> recv_tokens(Tokens - 1, Sum + Token)
+   end.
+
+send_tokens(0, _) -> done;
+send_tokens(Tokens, Next) ->
+   Next ! Tokens,
+   send_tokens(Tokens - 1, Next).
+
+ring_inner(0, Tokens, Next) ->
+   Sum = recv_tokens(Tokens, 0),
+   io:fwrite("end~n"),
+   io:fwrite("~b~n", [Sum]),
+   Next ! 0,
+   receive
+      _ -> done
+   end;
+ring_inner(Cycles, Tokens, Next) ->
+   pass_tokens(Tokens, Next),
+   ring_inner(Cycles - 1, Tokens, Next).
+
+ring(1, Cycles, Tokens, Next) ->
+   Next ! 1,
+   receive
+      _ ->
+         io:fwrite("start~n"),
+         send_tokens(Tokens, Next),
+         ring_inner(Cycles, Tokens, Next)
+   end;
+ring(N, Cycles, Tokens, Last) ->
+   Next = spawn(ring, ring_element, [1, Last]),
+   ring(N - 1, Cycles, Tokens, Next).
+
+ring_root(Cycles, Tokens) ->
+   ring(?ELEMENTS, Cycles, Tokens, self()).
+
+main([A1|[A2|_]]) ->
+   Cycles = list_to_integer(A1),
+   Tokens = list_to_integer(A2),
+   ring_root(Cycles, Tokens),
+   erlang:halt().
+
