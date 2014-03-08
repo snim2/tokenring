@@ -1,67 +1,97 @@
-/* The Computer Language Benchmarks Game
-   http://benchmarksgame.alioth.debian.org/
-
-   contributed by KP
-*/
+/*
+ * Go benchmark
+ * ------------
+ *
+ * Author: C.G. Ritson
+ * License: GPL v2
+ * Date: 14/11/2009
+ * Origin: http://github.com/concurrency/kroc
+ *
+ */
 
 package main
 
 import (
-   "fmt"
-   "os"
-   "runtime"
-   "strconv"
-   "sync"
+	"fmt";
+	"flag";
+	"os";
+	"runtime";
+	"strconv";
 )
 
-type Token int
+const ELEMENTS = 256
 
-type T struct {
-   next  *T
-   label int
-   value int
-   mux   sync.Mutex
+func element(this, next chan int) {
+	for {
+		token := <-this;
+		if token > 0 {
+			next <- token + 1
+		} else {
+			next <- token;
+			return
+		}
+	}
 }
 
-func (w *T) put(v int) {
-   w.value = v
-   if v == 0 {
-      res <- w.label
-   } else {
-      w.mux.Unlock()
-   }
+func root(cycles, tokens int, this, next chan int) {
+	next <- 1;
+	token := <-this;
+
+	os.Stdout.WriteString("start\n");
+
+	for i := 0; i < tokens; i = i + 1 {
+		next <- i + 1
+	}
+	for cycles > 0 {
+		for i := 0; i < tokens; i = i + 1 {
+			token = <-this;
+			next <- token + 1
+		}
+		cycles = cycles - 1
+	}
+	sum := 0;
+	for i := 0; i < tokens; i = i + 1 {
+		sum = sum + <-this
+	}
+
+	os.Stdout.WriteString("end\n");
+
+	fmt.Printf("%d\n", sum);
+
+	next <- 0;
+	<-this;
 }
 
-func (w *T) run() {
-   for {
-      w.mux.Lock()
-      w.next.put(w.value - 1)
-      runtime.Gosched()
-   }
+func ring(cycles, tokens int) {
+	head := make(chan int);
+	this := head;
+
+	for i := 0; i < ELEMENTS - 1; i = i + 1 {
+		next := make(chan int);
+		go element(this, next);
+		this = next
+	}
+
+	root(cycles, tokens, this, head)
 }
-
-func (w *T) Start(label int, next *T) {
-   w.label = label
-   w.next = next
-   w.mux.Lock()
-   go w.run()
-}
-
-const NThreads = 503
-
-var res = make(chan int)
 
 func main() {
-   n := 1000
-   if len(os.Args) > 1 {
-      n, _ = strconv.Atoi(os.Args[1])
-   }
+	flag.Parse();
 
-   var channels [NThreads]T
-   for i := range channels {
-      channels[i].Start(i+1, &channels[(i+1)%NThreads])
-   }
+	threads, _ := strconv.Atoi(os.Getenv("CORES"));
+	if threads < 1 {
+		threads = 1
+	}
+	runtime.GOMAXPROCS(threads);
 
-   channels[0].put(n)
-   fmt.Println(<-res)
+	cycles := 0;
+	if flag.NArg() >= 1 {
+		cycles, _ = strconv.Atoi(flag.Arg(0))
+	}
+	tokens := 1;
+	if flag.NArg() >= 2 {
+		tokens, _ = strconv.Atoi(flag.Arg(1))
+	}
+
+	ring(cycles, tokens)
 }
