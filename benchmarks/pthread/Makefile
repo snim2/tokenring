@@ -1,7 +1,12 @@
 .PHONY: clean version version-short
 
-all: tokenring.c
-	$(CC) $(CFLAGS) -O2 -Wall $< -o $@ -lpthread
+LDFLAGS=-pthread
+
+CFLAGS=-O3 -Wall
+
+all: tokenring
+
+tokenring: tokenring.c
 
 version:
 	echo "not implmented."
@@ -10,4 +15,4 @@ version-short:
 	echo "not implmented."
 
 clean:
-	-@ tokenring *.o
+	-@ $(shell rm tokenring)

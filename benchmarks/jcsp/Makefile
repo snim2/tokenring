@@ -1,15 +1,22 @@
 JAVAC=javac
 
+BASEDIR = $(shell pwd)
+JCSP = $(BASEDIR)/../../dependencies/jcsp/jcsp.jar
+
+# FIXME: Find this automatically.
+# At the moment this information is not contained in the manifest of the JAR.
+VERSION=1.1-rc4
+
 .PHONY: clean version version-short
 
 all: TokenRing.java
-	$(JAVAC) -Xlint:unchecked -classpath jcsp/jcsp.jar $<
+	$(JAVAC) -Xlint:unchecked -cp $(JCSP) $<
 
 version:
-	echo "not implemented."
+	@echo jcsp-$(VERSION)
 
 version-short:
-	echo "not implmented."
+	@echo $(VERSION)
 
 clean:
-	-@ *.class
+	-@rm *.class

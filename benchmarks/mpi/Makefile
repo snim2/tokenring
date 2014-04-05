@@ -15,24 +15,14 @@
 
 CC=mpicc
 
-CFLAGS=-c -Wall -O3
+CFLAGS=-Wall -O3
 
 LDFLAGS=-lm
 
-SOURCES=$(wildcard *.c)
+all: tokenring
+	$(shell chmod +x tokenring)
 
-OBJECTS=$(SOURCES:.c=.o)
-
-EXECS=$(SOURCES:%.c=%)
-
-
-all: $(OBJECTS) $(EXECS)
-
-.c.o:
-	$(CC) $(CFLAGS) $< -o $@
-
-.o.:
-	$(CC) $^ $(LDFLAGS) -o $@
+tokenring: tokenring.c
 
 version-short:
 	-@ mpicc --version | awk 'NR==1' | awk '{ print $$4 }'
@@ -41,5 +31,4 @@ version:
 	-@ mpicc --version | awk 'NR==1'
 
 clean:
-	-@ $(RM) *.o
-	-@ $(RM) $(EXECS)
+	-@ $(shell rm tokenring)

@@ -7,7 +7,7 @@
 %% Origin: http://github.com/concurrency/kroc
 %%
 
--module(mtring).
+-module(tokenring).
 -export([main/1, ring_element/2]).
 
 -define(ELEMENTS, 256).

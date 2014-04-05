@@ -1,7 +1,9 @@
 .PHONY: version version-short clean
 
+
+
 all: tokenring.c
-	$(CC) $(CFLAGS) $(CC_INC) -O2 -Wall $< -o $@ $(CC_LIB) -lccsp -lpthread
+	$(CC) $(CFLAGS) $(CC_INC) -O3 -Wall -I /usr/local/include/kroc/ $< -o $@ $(CC_LIB) -lccsp -lpthread
 
 version:
 	echo "not implmented."
