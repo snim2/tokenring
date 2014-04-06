@@ -8,8 +8,8 @@ LDFLAGS=-lrt -lm
 all: clock_res timer
 
 # FIXME: Should not need to state this explicitly. What is up with -lm?
-timer: timer.c
-	$(CC) timer.c -o timer $(CFLAGS) $(LDFLAGS)
+timer: timer.c timer_data.c
+	$(CC) timer.c timer_data.c -o timer $(CFLAGS) $(LDFLAGS)
 
 clock_res: clock_res.c
 
