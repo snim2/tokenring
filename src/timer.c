@@ -301,9 +301,9 @@ int execute(char **argv, const int iterations, result_t *result) {
         printf("Executing %s in child process.\n", *argv);
     }
 
-    clock_gettime(TIMER, &time_start);
-
     /* Execute the command we are measuring. */
+    ru = malloc(sizeof(struct rusage));
+    clock_gettime(TIMER, &time_start);
     pid = fork();
     if (pid < 0) {
         perror("Could not fork child process.");
@@ -319,7 +319,6 @@ int execute(char **argv, const int iterations, result_t *result) {
     }
 
     /* Parent process. */
-    ru = malloc(sizeof(struct rusage));
     wait4(pid, &status, 0, ru);
     clock_gettime(TIMER, &time_end);
 
