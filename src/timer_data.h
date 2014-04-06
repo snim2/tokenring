@@ -57,4 +57,23 @@ void summarise_statistics(result_t **results,
                           statistics_t *stats,
                           int num_experiments);
 
+
+/* Write out an array of result_ts to a CSV file. */
+int result_write_csv(result_t **result, char *filename, int num_experiments);
+
+/* Write out an array of result_ts to a JSON file. */
+int result_write_json(result_t **result, char *filename, int num_experiments);
+
+/* Write out an array of result_ts to a LaTeX file. */
+int result_write_latex(result_t **result, char *filename, int num_experiments);
+
+/* Write out a statistics_t struct to a CSV file. */
+int statistics_write_csv(statistics_t *stats, char *filename, int num_experiments);
+
+/* Write out a statistics_t struct to a CSV file. */
+int statistics_write_json(statistics_t *stats, char *filename, int num_experiments);
+
+/* Write out a statistics_t struct to a CSV file. */
+int statistics_write_latex(statistics_t *stats, char *filename, int num_experiments);
+
 /* TODO: Confidence intervals. */

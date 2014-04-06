@@ -11,6 +11,7 @@
  * -v --verbose Run in verbose mode.
  *
  * TODO: LaTeX output, JSON output, CSV output, confidence intervals.
+ * TODO: Add number of experiments to statistics_t.
  *
  * (c) Sarah Mount <s.mount@wlv.ac.uk> 2014
  */
@@ -49,10 +50,13 @@
  */
 #define TIMER CLOCK_MONOTONIC
 
-/* Filenames of different types. */
-#define CSV_FILENAME   "results.csv"
-#define JSON_FILENAME  "results.json"
-#define LATEX_FILENAME "results.tex"
+/* Filenames. */
+#define CSV_RESULTS   "results.csv"
+#define JSON_RESULTS  "results.json"
+#define LATEX_RESULTS "results.tex"
+#define CSV_SUMMARY   "summary.csv"
+#define JSON_SUMMARY  "summary.json"
+#define LATEX_SUMMARY "summary.tex"
 
 /* The name of this program. */
 const char *program_name;
@@ -81,9 +85,8 @@ int main(int argc, char **argv) {
     char *command = NULL;
     char *args[MAX_ARGS];
 
-    /* Output type. Not implemented yet. TODO.
-    int latex, csv, json;
-    */
+    /* Output type. Not implemented yet. */
+    int latex = 0, csv = 0, json = 0;
 
     /* Valid short options. */
     const char *short_options = "hc:i:ljsvq";
@@ -117,16 +120,13 @@ int main(int argc, char **argv) {
                iterations = atoi(optarg);
                break;
             case 'l': /* -l or --latex */
-               /* latex = 1; */
-               printf("LaTeX output not implemented.\n"); /* TODO */
+               latex = 1;
                break;
             case 'j': /* -j or --json */
-               /* json = 1; */
-               printf("JSON output not implemented.\n"); /* TODO */
+               json = 1;
                break;
             case 's': /* -s or --csv */
-               /* csv = 1; */
-               printf("CSV output not implemented.\n"); /* TODO */
+               csv = 1;
                break;
             case 'v': /* -v or --verbose */
                verbose = 1; /* Global. */
@@ -197,7 +197,49 @@ int main(int argc, char **argv) {
         print_statistics(stats);
     }
 
-    /* TODO: Write results summary to file. */
+    /* Write results and summary to disk. */
+    if (csv) {
+        if (verbose) {
+            printf("Writing results to %s.\n", CSV_RESULTS);
+        }
+        if (0 != result_write_csv(results, CSV_RESULTS, iterations)) {
+            fprintf(stderr, "Could not write to file %s\n.", CSV_RESULTS);
+        }
+        if (verbose) {
+            printf("Writing summary statistics to %s.\n", CSV_SUMMARY);
+        }
+        if (0 != statistics_write_csv(stats, CSV_SUMMARY, iterations)) {
+            fprintf(stderr, "Could not write to file %s\n.", CSV_SUMMARY);
+        }
+    }
+    if (json) {
+        if (verbose) {
+            printf("Writing results to %s.\n", JSON_RESULTS);
+        }
+        if (0 != result_write_json(results, JSON_RESULTS, iterations)) {
+            fprintf(stderr, "Could not write to file %s\n.", JSON_RESULTS);
+        }
+        if (verbose) {
+            printf("Writing summary statistics to %s.\n", JSON_SUMMARY);
+        }
+        if (0 != statistics_write_json(stats, JSON_SUMMARY, iterations)) {
+            fprintf(stderr, "Could not write to file %s\n.", JSON_SUMMARY);
+        }
+    }
+    if (latex) {
+        if (verbose) {
+            printf("Writing results to %s.\n", LATEX_RESULTS);
+        }
+        if (0 != result_write_latex(results, LATEX_RESULTS, iterations)) {
+            fprintf(stderr, "Could not write to file %s\n.", LATEX_RESULTS);
+        }
+        if (verbose) {
+            printf("Writing summary statistics to %s.\n", LATEX_SUMMARY);
+        }
+        if (0 != statistics_write_latex(stats, LATEX_SUMMARY, iterations)) {
+            fprintf(stderr, "Could not write to file %s\n.", LATEX_SUMMARY);
+        }
+    }
 
     /* Deallocate array of results. */
     for (i = 0; i < iterations; i++) {

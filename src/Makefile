@@ -18,4 +18,4 @@ valgrind:
 	valgrind --leak-check=full  ./clock_res
 
 clean:
-	-@ rm clock_res timer core
+	-@ rm -f clock_res timer core *.csv *.json *.tex

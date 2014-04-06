@@ -65,6 +65,61 @@ void print_result(result_t *result) {
 }
 
 
+/* Write out an array of result_ts to a CSV file. */
+int result_write_csv(result_t **result, char *filename, int num_experiments) {
+    unsigned int i = 0;
+    FILE *fp;
+    fp = fopen(filename,"w+");
+    /* Write header. */
+    fprintf(fp, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+            "Experiment",
+            "Wall clock time (s)",
+            "Wall clock time (ns)",
+            "User time (s)",
+            "System time (s)",
+            "Maximum resident set size (KB)",
+            "Page reclaims (soft page faults)",
+            "Page faults (hard page faults)",
+            "Block input operations",
+            "Block output operations",
+            "Voluntary context switches",
+            "Involuntary context switches");
+    /* Write data. */
+    for (i = 0; i < num_experiments; i++) {
+        fprintf(fp,
+                "%d,%lld,%lld,%lld,%lld,%ld,%ld,%ld,%ld,%ld,%ld,%ld\n",
+                i,
+                result[i]->seconds,
+                result[i]->nanoseconds,
+                (long long int)result[i]->user_time->tv_sec,
+                (long long int)result[i]->sys_time->tv_sec,
+                result[i]->max_set_size,
+                result[i]->soft_fault,
+                result[i]->hard_fault,
+                result[i]->in_block,
+                result[i]->out_block,
+                result[i]->vol_con_switches,
+                result[i]->invol_con_switches);
+    }
+    fclose(fp);
+    return EXIT_SUCCESS;
+}
+
+
+/* Write out an array of result_ts to a JSON file. */
+int result_write_json(result_t **result, char *filename, int num_experiments) {
+    printf("Not implemented.\n");
+    return EXIT_FAILURE;
+}
+
+
+/* Write out an array of result_ts to a LaTeX file. */
+int result_write_latex(result_t **result, char *filename, int num_experiments) {
+    printf("Not implemented.\n");
+    return EXIT_FAILURE;
+}
+
+
 /* Allocate memory for a statistics_t type. */
 statistics_t * statistics_new() {
     statistics_t *statistics = (statistics_t*)malloc(sizeof(statistics_t));
@@ -125,6 +180,84 @@ void print_statistics(statistics_t *stats) {
            stats->invol_con_switches_mean, stats->invol_con_switches_stdev);
     hrule();
     return;
+}
+
+
+/* Write out a statistics_t struct to a CSV file. */
+int statistics_write_csv(statistics_t *stats, char *filename, int num_experiments) {
+    FILE *fp;
+    fp = fopen(filename,"w+");
+    /* Write header. */
+    fprintf(fp,
+            "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+/*            "Number of experiments", */
+            "Mean wall clock time (s)",
+            "Std. dev. wall clock time (s)",
+            "Mean wall clock time (ns)",
+            "Std. dev. wall clock time (ns)",
+            "Mean user time (s)",
+            "Std. dev. user time (s)",
+            "Mean system time (s)",
+            "Std. dev. system time (s)",
+            "Mean maximum resident set size (KB)",
+            "Std. dev. maximum resident set size (KB)",
+            "Mean page reclaims (soft page faults)",
+            "Std. dev. page reclaims (soft page faults)",
+            "Mean page faults (hard page faults)",
+            "Std. dev. page faults (hard page faults)",
+            "Mean block input operations",
+            "Std. dev. block input operations",
+            "Mean block output operations",
+            "Std. dev. block output operations",
+            "Mean voluntary context switches",
+            "Std. dev. voluntary context switches",
+            "Mean involuntary context switches",
+            "Std. dev. involuntary context switches");
+    /* Write data. */
+    fprintf(fp,
+            "%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf,%Lf\n",
+            stats->seconds_mean,
+            stats->seconds_stdev,
+            stats->nanoseconds_mean,
+            stats->nanoseconds_stdev,
+            stats->user_time_seconds_mean,
+            stats->user_time_seconds_stdev,
+            stats->sys_time_seconds_mean,
+            stats->sys_time_seconds_stdev,
+            stats->max_set_size_mean,
+            stats->max_set_size_stdev,
+            stats->soft_fault_mean,
+            stats->soft_fault_stdev,
+            stats->hard_fault_mean,
+            stats->hard_fault_stdev,
+            stats->in_block_mean,
+            stats->in_block_stdev,
+            stats->out_block_mean,
+            stats->out_block_stdev,
+            stats->vol_con_switches_mean,
+            stats->vol_con_switches_stdev,
+            stats->invol_con_switches_mean,
+            stats->invol_con_switches_stdev);
+
+    fclose(fp);
+    return EXIT_SUCCESS;
+
+
+    return EXIT_SUCCESS;
+}
+
+
+/* Write out a statistics_t struct to a CSV file. */
+int statistics_write_json(statistics_t *stats, char *filename, int num_experiments) {
+    printf("Not implemented.\n");
+    return EXIT_FAILURE;
+}
+
+
+/* Write out a statistics_t struct to a CSV file. */
+int statistics_write_latex(statistics_t *stats, char *filename, int num_experiments) {
+    printf("Not implemented.\n");
+    return EXIT_FAILURE;
 }
 
 
