@@ -10,7 +10,7 @@
  * -q --quiet Run in quiet mode.
  * -v --verbose Run in verbose mode.
  *
- * TODO: LaTeX output, JSON output, CSV output, statistics, confidence intervals.
+ * TODO: LaTeX output, JSON output, CSV output, confidence intervals.
  *
  * (c) Sarah Mount <s.mount@wlv.ac.uk> 2014
  */
@@ -68,16 +68,19 @@ typedef struct result_t {
 result_t * result_new();
 void result_free (result_t* result);
 
+/* Print results of a single measurement. */
+void print_result(result_t *result);
+
 /* Summary of results from experiments. */
 typedef struct statistics_t {
     /* Timings from a nanosecond-resolution monotonic clock. */
-    long long seconds_mean, seconds_stdev, \
+    long double seconds_mean, seconds_stdev, \
         nanoseconds_mean, nanoseconds_stdev;
     /* Time spent in user and system mode, according to rusage. */
-    long int user_time_seconds_mean, user_time_seconds_stdev, \
-        sys_time_seconds_mean, sys_time_seconds_stdev;
+    long double user_time_seconds_mean, user_time_seconds_stdev, \
+        sys_time_seconds_mean, sys_time_seconds_stdev; /* TODO: Missing usec. */
     /* Data from the operating system. */
-    long int max_set_size_mean, max_set_size_stdev, \
+    long double max_set_size_mean, max_set_size_stdev, \
         soft_fault_mean, soft_fault_stdev, \
         hard_fault_mean, hard_fault_stdev, \
         in_block_mean, in_block_stdev, \
@@ -90,11 +93,14 @@ typedef struct statistics_t {
 statistics_t * statistics_new();
 void statistics_free (statistics_t* statistics);
 
-/* Statistical functions. */
-/* TODO: Take an array of result_t and return statistics_t. */
+/* Print summary of statistics. */
+void print_statistics(statistics_t *stats);
+
+/* Calculate means and standard deviations. */
+void summarise_statistics(result_t **results,
+                          statistics_t *stats,
+                          int num_experiments);
 /* TODO: Confidence intervals. */
-double mean(double results[], int n);
-double stdev(double results[], int n);
 
 /* The name of this program. */
 const char *program_name;
@@ -102,11 +108,11 @@ const char *program_name;
 /* Run in verbose, quiet or regular mode. */
 int verbose, quiet;
 
+/* Print a horizontal rule. */
+void hrule();
+
 /* Prints usage information for this program exit. */
 void print_usage (FILE *stream, int exit_code);
-
-/* Print results of a single measurement. */
-void print_result(result_t *result);
 
 /* Parse a command from the user into a format suitable for execvp. */
 void parse_command(char *line, char **argv);
@@ -194,6 +200,13 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    if (iterations < 1) {
+        errno = EINVAL;
+        perror("Must perform at least one experiment");
+        exit(EXIT_FAILURE);
+        return 1;
+    }
+
     if (command == NULL) {
         errno = EINVAL;
         perror("Must specify a command to measure");
@@ -202,10 +215,11 @@ int main(int argc, char **argv) {
     }
 
     /* Allocate an array of results. */
-    result_t **results = malloc(sizeof(result_t*) * iterations);
+    result_t **results = malloc(sizeof(result_t*) * (iterations + 1));
     for (i = 0; i < iterations; i++) {
         results[i] = result_new();
     }
+    results[i] = (result_t*)NULL;
 
     /* Parse the command we are going to execute. */
     parse_command(command, args);
@@ -228,7 +242,11 @@ int main(int argc, char **argv) {
     /* Allocate memory for a summary of the results. */
     statistics_t *stats = statistics_new();
 
-    /* TODO: Summarise results statistics. */
+    /* Summarise results statistics. */
+    summarise_statistics(results, stats, iterations);
+    if (verbose) {
+        print_statistics(stats);
+    }
 
     /* TODO: Write results summary to file. */
 
@@ -349,9 +367,8 @@ int execute(char **argv, const int iterations, result_t *result) {
         return 1;
     }
 
-    /* Malloc space for this. */
+    /* Calculate wall clock time and copy results into a results_t. */
     time_diff = diff(time_start, time_end);
-
     result->seconds = time_diff.tv_sec;
     result->nanoseconds = time_diff.tv_nsec;
     *result->user_time = ru->ru_utime;
@@ -363,6 +380,10 @@ int execute(char **argv, const int iterations, result_t *result) {
     result->out_block = ru->ru_oublock;
     result->vol_con_switches = ru->ru_nvcsw;
     result->invol_con_switches = ru->ru_nivcsw;
+
+    /* Once the results of getrusage() are in the result_t we do not need the
+     * original copy of that data.
+     */
     free(ru);
 
     if (verbose) {
@@ -370,6 +391,12 @@ int execute(char **argv, const int iterations, result_t *result) {
     }
 
     return 0;
+}
+
+
+/* Print a horizontal rule. */
+void hrule() {
+    printf("----------------------------------------------------------------\n");
 }
 
 
@@ -408,6 +435,50 @@ void print_result(result_t *result) {
 }
 
 
+/* Print summary of statistics. */
+void print_statistics(statistics_t *stats) {
+    printf("\n");
+    hrule();
+    printf(" %-30s | %-15s | %-20s \n",
+           "Measurement", "Mean", "Std. deviation");
+    hrule();
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Wall clock time (s)",
+           stats->seconds_mean, stats->seconds_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Wall clock time (ns)",
+           stats->nanoseconds_mean, stats->nanoseconds_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "User time (s)",
+           stats->user_time_seconds_mean, stats->user_time_seconds_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "System time (us)",
+           stats->sys_time_seconds_mean, stats->sys_time_seconds_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Maximum resident size (KB)",
+           stats->max_set_size_mean, stats->max_set_size_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Soft page faults", stats->soft_fault_mean, stats->soft_fault_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Hard page faults",
+           stats->hard_fault_mean, stats->hard_fault_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Number of input operations",
+           stats->in_block_mean, stats->in_block_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Number of output operations",
+           stats->out_block_mean, stats->out_block_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Voluntary context switches",
+           stats->vol_con_switches_mean, stats->vol_con_switches_stdev);
+    printf(" %-30s | %-15Lf | %-20Lf \n",
+           "Involuntary context switches",
+           stats->invol_con_switches_mean, stats->invol_con_switches_stdev);
+    hrule();
+    return;
+}
+
+
 /* Calculate the difference between two points in time. */
 struct timespec diff(struct timespec start, struct timespec end) {
     struct timespec temp;
@@ -422,26 +493,113 @@ struct timespec diff(struct timespec start, struct timespec end) {
 }
 
 
-/* TODO: Take an array of result_t and return statistics_t. */
-double mean(double results[], int n) {
-    int i = 0;
-    double sum = 0;
-    for (i = 0; i < n; i++) {
-        sum += results[i];
-    }
-    return sum / n;
-}
+/* Given an array of results, fill in the averages in a statistics summary.
+ *
+ * Note that the number of experiments is guaranteed to be >= 1.
+ */
+void summarise_statistics(result_t **results,
+                          statistics_t *stats,
+                          int num_experiments) {
 
-
-/* TODO: Take an array of result_t and return statistics_t. */
-double stdev(double results[], int n) {
+    long double seconds_total = 0, /* Temporary total. */
+            nanoseconds_total = 0,
+            user_time_seconds_total = 0,
+            sys_time_seconds_total = 0,
+            max_set_size_total = 0,
+            soft_fault_total = 0,
+            hard_fault_total = 0,
+            in_block_total = 0,
+            out_block_total = 0,
+            vol_con_switches_total = 0,
+            invol_con_switches_total = 0,
+            /* Temporary variances. */
+            seconds_nvar = 0,
+            nanoseconds_nvar = 0,
+            user_time_seconds_nvar = 0,
+            sys_time_seconds_nvar = 0,
+            max_set_size_nvar = 0,
+            soft_fault_nvar = 0,
+            hard_fault_nvar = 0,
+            in_block_nvar = 0,
+            out_block_nvar = 0,
+            vol_con_switches_nvar = 0,
+            invol_con_switches_nvar = 0;
     int i = 0;
-    double sigma = 0.0;
-    double mu = mean(results, n);
-    for (i = 0; i < n; i++) {
-        sigma += pow(results[i] - mu, 2);
+    const long double recip = 1.0 / (long double)num_experiments;
+
+    /* Calculate totals for all values. */
+    for (i = 0; i < num_experiments; i++) {
+        seconds_total            += results[i]->seconds;
+        nanoseconds_total        += results[i]->nanoseconds;
+        user_time_seconds_total  += results[i]->user_time->tv_sec;
+        sys_time_seconds_total   += results[i]->sys_time->tv_sec;
+        max_set_size_total       += results[i]->max_set_size;
+        soft_fault_total         += results[i]->soft_fault;
+        hard_fault_total         += results[i]->hard_fault;
+        in_block_total           += results[i]->in_block;
+        out_block_total          += results[i]->out_block;
+        vol_con_switches_total   += results[i]->vol_con_switches;
+        invol_con_switches_total += results[i]->invol_con_switches;
     }
-    return sqrt(sigma);
+
+    /* Set means for all values. */
+    stats->seconds_mean = (long double) seconds_total / num_experiments;
+    stats->nanoseconds_mean = (long double) nanoseconds_total / num_experiments;
+    stats->user_time_seconds_mean = (long double) (user_time_seconds_total /
+                                                   num_experiments);
+    stats->sys_time_seconds_mean = (long double) (sys_time_seconds_total /
+                                                  num_experiments);
+    stats->max_set_size_mean = (long double) (max_set_size_total /
+                                              num_experiments);
+    stats->soft_fault_mean = (long double) soft_fault_total / num_experiments;
+    stats->hard_fault_mean = (long double) hard_fault_total / num_experiments;
+    stats->in_block_mean = (long double) in_block_total / num_experiments;
+    stats->out_block_mean = (long double) out_block_total / num_experiments;
+    stats->vol_con_switches_mean = (long double) (vol_con_switches_total /
+                                                  num_experiments);
+    stats->invol_con_switches_mean = (long double) (invol_con_switches_total /
+                                                    num_experiments);
+
+    /* Calculate n * variance for all values. */
+    for (i = 0; i < num_experiments; i++) {
+        seconds_nvar            += pow(results[i]->seconds -
+                                       stats->seconds_mean, 2);
+        nanoseconds_nvar        += pow(results[i]->nanoseconds -
+                                       stats->nanoseconds_mean, 2);
+        user_time_seconds_nvar  += pow(results[i]->user_time->tv_sec -
+                                       stats->user_time_seconds_mean, 2);
+        sys_time_seconds_nvar   += pow(results[i]->sys_time->tv_sec -
+                                       stats->sys_time_seconds_mean, 2);
+        max_set_size_nvar       += pow(results[i]->max_set_size -
+                                       stats->max_set_size_mean, 2);
+        soft_fault_nvar         += pow(results[i]->soft_fault -
+                                       stats->soft_fault_mean, 2);
+        hard_fault_nvar         += pow(results[i]->hard_fault -
+                                       stats->hard_fault_mean, 2);
+        in_block_nvar           += pow(results[i]->in_block -
+                                       stats->in_block_mean, 2);
+        out_block_nvar          += pow(results[i]->out_block -
+                                       stats->out_block_mean, 2);
+        vol_con_switches_nvar   += pow(results[i]->vol_con_switches -
+                                       stats->vol_con_switches_mean, 2);
+        invol_con_switches_nvar += pow(results[i]->invol_con_switches -
+                                       stats->invol_con_switches_mean, 2);
+    }
+
+    /* Set standard deviations for all values. */
+    stats->seconds_stdev            = sqrt(recip * seconds_nvar);
+    stats->nanoseconds_stdev        = sqrt(recip * nanoseconds_nvar);
+    stats->user_time_seconds_stdev  = sqrt(recip * user_time_seconds_nvar);
+    stats->sys_time_seconds_stdev   = sqrt(recip * sys_time_seconds_nvar);
+    stats->max_set_size_stdev       = sqrt(recip * max_set_size_nvar);
+    stats->soft_fault_stdev         = sqrt(recip * soft_fault_nvar);
+    stats->hard_fault_stdev         = sqrt(recip * hard_fault_nvar);
+    stats->in_block_stdev           = sqrt(recip * in_block_nvar);
+    stats->out_block_stdev          = sqrt(recip * out_block_nvar);
+    stats->vol_con_switches_stdev   = sqrt(recip * vol_con_switches_nvar);
+    stats->invol_con_switches_stdev = sqrt(recip * invol_con_switches_nvar);
+
+    return;
 }
 
 /* TODO: Implement confidence intervals. */
