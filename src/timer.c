@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
     /* Run experiments. */
     for (i = 0; i < iterations; i++) {
         if (verbose) {
-            printf("Running experiment: %d.\n", i);
+            printf("\nRunning experiment: %d.\n", i);
         }
         if (execute(args, iterations, results[i]) != 0) {
             fprintf(stderr,
@@ -296,7 +296,7 @@ void print_usage (FILE *stream, int exit_code) {
  */
 void parse_command(char *line, char **argv) {
     if (verbose) {
-        printf("Parsing: %s", line);
+        printf("Parsing: %s.\n", line);
     }
      while (*line != '\0') {
           while (*line == ' ' || *line == '\t' || *line == '\n')
@@ -318,7 +318,7 @@ int execute(char **argv, const int iterations, result_t *result) {
     int status;
 
     if (verbose) {
-        printf("Executing %s\n", *argv);
+        printf("Executing %s in child process.\n", *argv);
     }
 
     clock_gettime(TIMER, &time_start);
@@ -375,12 +375,22 @@ int execute(char **argv, const int iterations, result_t *result) {
 
 /* Print results of a single measurement. */
 void print_result(result_t *result) {
-    printf("Wall clock time: %lld seconds %lld microseconds.\n",
-           result->seconds, result->nanoseconds);
-    printf("User time: %ld second %ld nanoseconds.\n",
-           result->user_time->tv_sec, result->user_time->tv_usec);
-    printf("System time: %ld second %ld nanoseconds.\n",
-           result->sys_time->tv_sec, result->sys_time->tv_usec);
+    long double wc_s = ( (long double)result->seconds +
+                         ((long double)result->nanoseconds /
+                          (long double)1000000000) );
+    long double user_s = ( (long double)result->user_time->tv_sec +
+                           ((long double)result->user_time->tv_usec /
+                            (long double)1000000) );
+    long double sys_s = ( (long double)result->sys_time->tv_sec +
+                         ((long double)result->sys_time->tv_usec /
+                          (long double)1000000) );
+
+    printf("Wall clock time: %lld seconds %lld nanoseconds or %.9Lf seconds.\n",
+           result->seconds, result->nanoseconds, wc_s);
+    printf("User time: %ld second %ld microseconds or %.6Lf seconds.\n",
+           result->user_time->tv_sec, result->user_time->tv_usec, user_s);
+    printf("System time: %ld second %ld microseconds or %.6Lf seconds.\n",
+           result->sys_time->tv_sec, result->sys_time->tv_usec, sys_s);
     printf("%-10ld Maximum resident set size (Kb).\n",
            result->max_set_size);
     printf("%-10ld Page reclaims (soft page faults).\n",
