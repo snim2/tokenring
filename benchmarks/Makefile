@@ -4,7 +4,10 @@
 
 # SUBDIRS = $(shell ls -d */)
 
-SUBDIRS = clojure erlang ghc golang haskell jcsp mpi ocaml occam pthread python-csp scala stackless
+# chp
+# ccsp
+# stackless
+SUBDIRS = clojure erlang ghc golang haskell jcsp mpi ocaml occam pthread python-csp scala
 
 all: 
 	@for dir in $(SUBDIRS); \
