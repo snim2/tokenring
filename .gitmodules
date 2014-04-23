@@ -1,0 +1,24 @@
+[submodule "dependencies/greenlet"]
+	path = dependencies/greenlet
+	url = https://github.com/python-greenlet/greenlet
+[submodule "dependencies/rust"]
+	path = dependencies/rust
+	url = https://github.com/mozilla/rust
+[submodule "dependencies/naulang"]
+	path = dependencies/naulang
+	url = https://github.com/samgiles/naulang
+[submodule "dependencies/node-csp"]
+	path = dependencies/node-csp
+	url = https://github.com/olahol/node-csp
+[submodule "dependencies/LuaCSP"]
+	path = dependencies/LuaCSP
+	url = https://github.com/loyso/LuaCSP
+[submodule "dependencies/kroc"]
+	path = dependencies/kroc
+	url = https://github.com/concurrency/kroc
+[submodule "dependencies/ruby-csp"]
+	path = dependencies/ruby-csp
+	url = https://github.com/dasch/ruby-csp
+[submodule "dependencies/erlang"]
+	path = dependencies/erlang
+	url = https://github.com/erlang/otp
